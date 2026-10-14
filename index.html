@@ -1,0 +1,2147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Track Run</title>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: radial-gradient(ellipse at center, #1a5e3a 0%, #0d3220 100%);
+    color: #f4e9c1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    padding-bottom: 180px;
+    user-select: none;
+  }
+
+  h1 {
+    font-size: 2rem;
+    text-align: center;
+    margin-bottom: 4px;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    letter-spacing: 1px;
+  }
+
+  .subtitle {
+    font-size: 0.85rem;
+    opacity: 0.8;
+    margin-bottom: 20px;
+    text-align: center;
+    max-width: 560px;
+    line-height: 1.5;
+  }
+
+  .panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    background: rgba(0,0,0,0.4);
+    padding: 36px 44px;
+    border-radius: 20px;
+    border: 1px solid rgba(244,233,193,0.2);
+    margin-top: 24px;
+    max-width: 480px;
+    width: 100%;
+  }
+
+  .panel h2 {
+    font-size: 1.4rem;
+    color: #ffd866;
+    margin-bottom: 4px;
+  }
+
+  .panel p {
+    text-align: center;
+    line-height: 1.5;
+    opacity: 0.9;
+    font-size: 0.95rem;
+  }
+
+  .rules {
+    background: rgba(0,0,0,0.3);
+    border-radius: 10px;
+    padding: 12px 18px;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    width: 100%;
+  }
+  .rules strong { color: #ffd866; }
+
+  .name-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .name-inputs input {
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(244,233,193,0.3);
+    background: rgba(0,0,0,0.3);
+    color: #f4e9c1;
+    font-size: 1rem;
+    font-family: inherit;
+  }
+  .name-inputs input:focus { outline: none; border-color: #ffd866; }
+
+  .mode-grid, .count-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .count-grid { flex-direction: row; }
+  .count-grid button { flex: 1; }
+
+  .back-link {
+    background: none;
+    border: none;
+    color: #f4e9c1;
+    opacity: 0.6;
+    cursor: pointer;
+    font-size: 0.85rem;
+    text-decoration: underline;
+    padding: 4px;
+    box-shadow: none;
+    font-family: inherit;
+  }
+  .back-link:hover { opacity: 1; }
+
+  .hidden { display: none !important; }
+
+  /* Game */
+  .scoreboard {
+    display: flex;
+    gap: 16px;
+    background: rgba(0,0,0,0.35);
+    border-radius: 14px;
+    padding: 12px 20px;
+    margin-bottom: 16px;
+    border: 1px solid rgba(244,233,193,0.15);
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .score {
+    text-align: center;
+    min-width: 90px;
+    padding: 0 6px;
+  }
+
+  .score.active {
+    border: 2px solid #ffd866;
+    border-radius: 8px;
+    padding: 4px 8px;
+  }
+
+  .score .label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    opacity: 0.85;
+  }
+
+  .score .value {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #ffd866;
+  }
+
+  .score .inv {
+    font-size: 0.75rem;
+    color: #c899ff;
+    margin-top: 2px;
+    min-height: 14px;
+  }
+  .score .inv strong { color: #fff; }
+
+  .turn-indicator {
+    padding: 8px 14px;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #ffd866 0%, #e8b945 100%);
+    color: #2a1a00;
+    font-weight: bold;
+    font-size: 0.9rem;
+  }
+
+  /* Tracks (vertical lanes) */
+  .lanes {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    background: rgba(0,0,0,0.25);
+    padding: 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(244,233,193,0.1);
+    margin-bottom: 20px;
+    align-items: flex-start;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .lane {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .lane-label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    opacity: 0.85;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .lane-label .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+  }
+
+  .lane.active .lane-label { color: #ffd866; }
+
+  .track-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .end-label {
+    font-size: 0.65rem;
+    letter-spacing: 1.5px;
+    opacity: 0.75;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  .end-label.finish { color: #ffd866; background: rgba(255,216,102,0.12); }
+  .end-label.start  { color: #6cf06c; background: rgba(108,240,108,0.12); }
+
+  .track {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: rgba(0,0,0,0.2);
+    transition: box-shadow 0.3s;
+    border: 2px solid transparent;
+  }
+  .lane.active .track {
+    box-shadow: 0 0 14px rgba(255,216,102,0.3);
+    border-color: rgba(255,216,102,0.5);
+  }
+
+  .cell {
+    position: relative;
+    width: 64px;
+    height: 38px;
+    flex-shrink: 0;
+  }
+
+  .card {
+    width: 64px;
+    height: 38px;
+    border-radius: 6px;
+    background: white;
+    color: #222;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+  }
+
+  .card.back {
+    background: repeating-linear-gradient(45deg, #8b1e2c, #8b1e2c 5px, #6b1521 5px, #6b1521 10px);
+    border: 2px solid #f4e9c1;
+    color: transparent;
+  }
+
+  .card.safe     { background: linear-gradient(135deg, #b8f5b8 0%, #6cf06c 100%); color: #1a5e2a; }
+  .card.explode  { background: linear-gradient(135deg, #ffb88c 0%, #ff4444 100%); color: white; animation: shake 0.4s; }
+  .card.reversal { background: linear-gradient(135deg, #d4a8ff 0%, #8e44ff 100%); color: white; animation: spin 0.6s; }
+  .card.block    { background: linear-gradient(135deg, #a8d4ff 0%, #3a8ef0 100%); color: white; animation: pulse 0.5s; }
+  .card.boost    { background: linear-gradient(135deg, #fff4a8 0%, #f0c83a 100%); color: #5a4400; animation: jump 0.6s; }
+  .card.random   { background: linear-gradient(135deg, #ff6b6b 0%, #ffd93d 25%, #6bcf7f 50%, #4d96ff 75%, #d166ff 100%); color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
+  .card.buffer   { background: linear-gradient(135deg, #ffe88c 0%, #ff8c42 50%, #c44dff 100%); color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.6); border: 2px solid #fff; animation: shimmer 0.8s; }
+  .card.allinone { background: linear-gradient(135deg, #fff 0%, #b8eaff 25%, #ffaaff 50%, #b8eaff 75%, #fff 100%); color: #444; border: 2px solid #ffd700; box-shadow: 0 0 12px rgba(255,215,0,0.6); animation: sparkle 1s; }
+  .card.goal     { background: linear-gradient(135deg, #ffe88c 0%, #ffd700 100%); color: #5a4400; border: 2px solid #fff; box-shadow: 0 0 10px rgba(255,215,0,0.7); }
+
+  .card.flip-anim { animation: flip 0.5s; }
+
+  @keyframes flip { 0% { transform: rotateY(0); } 50% { transform: rotateY(90deg); } 100% { transform: rotateY(0); } }
+  @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+  @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+  @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+  @keyframes jump { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-8px); } }
+  @keyframes shimmer { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes sparkle { 0% { transform: scale(0.5) rotate(-180deg); opacity: 0; } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+  @keyframes roll { 0% { transform: rotate(0); } 50% { transform: rotate(180deg) scale(0.7); } 100% { transform: rotate(360deg); } }
+
+  .cell-index {
+    position: absolute;
+    left: -20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.65rem;
+    opacity: 0.5;
+    width: 16px;
+    text-align: right;
+  }
+
+  .tokens {
+    position: absolute;
+    right: -56px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    gap: 3px;
+    flex-wrap: nowrap;
+  }
+
+  .token {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .token.me { box-shadow: 0 0 0 2px #ffd866, 0 2px 6px rgba(0,0,0,0.6); }
+
+  .token.p0, .dot.p0 { background: #3a8ef0; }
+  .token.p1, .dot.p1 { background: #f0723a; }
+  .token.p2, .dot.p2 { background: #6cf06c; }
+  .token.p3, .dot.p3 { background: #c899ff; }
+
+  /* Bottom bar */
+  .bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(180deg, rgba(13,50,32,0.85) 0%, rgba(13,50,32,0.98) 40%);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-top: 1px solid rgba(244,233,193,0.2);
+    padding: 12px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    z-index: 100;
+    box-shadow: 0 -8px 24px rgba(0,0,0,0.5);
+  }
+
+  .bottom-bar .row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .die {
+    width: 54px;
+    height: 54px;
+    background: linear-gradient(135deg, #fff 0%, #e0e0e0 100%);
+    border-radius: 10px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+    padding: 6px;
+    gap: 3px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  }
+  .die.rolling { animation: roll 0.6s ease-out; }
+
+  .pip {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: #1a1a1a;
+    visibility: hidden;
+  }
+  .pip.on { visibility: visible; }
+
+  .status {
+    text-align: center;
+    font-size: 0.95rem;
+    min-height: 22px;
+    color: #ffd866;
+    font-weight: 500;
+    max-width: 700px;
+  }
+
+  button {
+    padding: 11px 22px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: linear-gradient(180deg, #ffd866 0%, #e8b945 100%);
+    color: #2a1a00;
+    box-shadow: 0 4px 0 #8a6a20, 0 6px 12px rgba(0,0,0,0.3);
+    transition: all 0.1s;
+    letter-spacing: 0.5px;
+    font-family: inherit;
+  }
+  button.big { padding: 14px 32px; font-size: 1.1rem; }
+  button:hover:not(:disabled) { transform: translateY(-1px); }
+  button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 #8a6a20; }
+  button:disabled { background: #555; color: #888; cursor: not-allowed; box-shadow: 0 4px 0 #333; transform: none; }
+
+  button.secondary {
+    background: linear-gradient(180deg, #4a8a6a 0%, #2e5a44 100%);
+    color: #f4e9c1;
+    box-shadow: 0 4px 0 #1a3a2a, 0 6px 12px rgba(0,0,0,0.3);
+  }
+  button.reversal-btn {
+    background: linear-gradient(180deg, #d4a8ff 0%, #8e44ff 100%);
+    color: white;
+    box-shadow: 0 4px 0 #4a1e8a, 0 6px 12px rgba(0,0,0,0.3);
+  }
+  button.boost-btn {
+    background: linear-gradient(180deg, #fff4a8 0%, #f0c83a 100%);
+    color: #5a4400;
+    box-shadow: 0 4px 0 #8a6a20, 0 6px 12px rgba(0,0,0,0.3);
+  }
+  button.super-btn {
+    background: linear-gradient(180deg, #ffe88c 0%, #ff8c42 50%, #c44dff 100%);
+    color: white;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    box-shadow: 0 4px 0 #6a2a8a, 0 6px 12px rgba(0,0,0,0.3);
+  }
+
+  .match-end {
+    text-align: center;
+    font-size: 1.6rem;
+    margin: 12px 0;
+    color: #ffd866;
+    font-weight: bold;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  }
+
+  .reward-box {
+    background: linear-gradient(135deg, #ffe88c 0%, #ff8c42 100%);
+    border: 3px solid #ffd700;
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin: 10px auto;
+    max-width: 360px;
+    text-align: center;
+    box-shadow: 0 0 24px rgba(255,215,0,0.6);
+    animation: sparkle 1s ease-out;
+  }
+  .reward-title { color: #2a1a00; font-weight: bold; font-size: 0.95rem; margin-bottom: 4px; }
+  .reward-code {
+    background: #2a1a00;
+    color: #ffd866;
+    font-family: "SF Mono", Menlo, monospace;
+    padding: 8px 12px;
+    border-radius: 6px;
+    letter-spacing: 2px;
+    font-size: 1.05rem;
+    font-weight: bold;
+    margin: 8px 0;
+    user-select: all;
+    cursor: pointer;
+  }
+  .reward-note { color: #4a2a00; font-size: 0.7rem; margin-top: 4px; font-style: italic; }
+
+  .prize-gift {
+    font-size: 3.5rem;
+    cursor: pointer;
+    display: inline-block;
+    margin: 8px 0;
+    animation: giftIdle 2s ease-in-out infinite;
+    transition: transform 0.15s;
+  }
+  .prize-gift:hover { transform: scale(1.15); }
+  @keyframes giftIdle {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
+  .cutscene-shake {
+    font-size: 3.5rem;
+    display: inline-block;
+    animation: cutShake 1.2s ease-in-out;
+  }
+  @keyframes cutShake {
+    0%, 100% { transform: rotate(0); }
+    15% { transform: rotate(-15deg) scale(1.1); }
+    30% { transform: rotate(15deg) scale(1.1); }
+    45% { transform: rotate(-12deg) scale(1.15); }
+    60% { transform: rotate(12deg) scale(1.2); }
+    75% { transform: rotate(-8deg) scale(1.3); }
+    90% { transform: rotate(0) scale(1.5); }
+  }
+
+  .cutscene-text {
+    color: #2a1a00;
+    font-weight: bold;
+    font-size: 1rem;
+    margin-top: 6px;
+    animation: pulseText 0.6s ease-in-out infinite;
+  }
+  @keyframes pulseText {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+
+  .cutscene-burst {
+    font-size: 4rem;
+    animation: burstOut 0.7s ease-out;
+  }
+  @keyframes burstOut {
+    0% { transform: scale(0); opacity: 0; }
+    60% { transform: scale(1.6); opacity: 1; }
+    100% { transform: scale(1.2); opacity: 1; }
+  }
+
+  .copy-hint {
+    color: #2a1a00;
+    font-size: 0.72rem;
+    font-weight: 600;
+    margin: 4px 0;
+    opacity: 0.85;
+  }
+
+  .skins-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 10px 0;
+  }
+  .skin-row {
+    background: linear-gradient(90deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.5) 100%);
+    border-left: 4px solid #888;
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: #f4e9c1;
+    text-align: left;
+    animation: slideIn 0.4s ease-out;
+  }
+  @keyframes slideIn {
+    0% { transform: translateX(-30px); opacity: 0; }
+    100% { transform: translateX(0); opacity: 1; }
+  }
+  .skin-rarity {
+    font-size: 0.65rem;
+    font-weight: bold;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .skin-name { font-size: 1rem; margin: 2px 0; }
+  .skin-name strong { color: #ffd866; }
+  .skin-wear { font-size: 0.7rem; opacity: 0.7; font-style: italic; }
+
+  .loadout-tip {
+    color: #2a1a00;
+    background: rgba(255,255,255,0.45);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-style: italic;
+    margin: 6px 0;
+  }
+
+  .copy-loadout-btn, .redeem-btn {
+    display: inline-block;
+    margin: 8px 0 4px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #4caf50 0%, #2e7d32 100%);
+    color: white !important;
+    font-weight: bold;
+    font-size: 0.9rem;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    box-shadow: 0 3px 0 #1b5e20, 0 4px 10px rgba(0,0,0,0.3);
+  }
+  .copy-loadout-btn:hover, .redeem-btn:hover { transform: translateY(-1px); }
+  .copy-loadout-btn:active, .redeem-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #1b5e20; }
+
+  .reveal-animate { animation: reveal 0.6s ease-out; }
+  @keyframes reveal {
+    0% { transform: scale(0.3); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+</style>
+</head>
+<body>
+
+<h1>🎴 Track Run 🎲</h1>
+<div class="subtitle">Race up your lane of hidden cards. Roll to advance, dodge explodes, and use power cards to sabotage your enemies.</div>
+
+<!-- Mode selection screen -->
+<div class="panel" id="modeScreen">
+  <h2>Choose Mode</h2>
+  <div class="rules">
+    <strong>Rules:</strong><br>
+    • Roll the die, advance, cards behind/at your position flip.<br>
+    • <strong style="color:#6cf06c">Safe ✓</strong> — nothing.
+    • <strong style="color:#ff6666">Explode 💥</strong> — bounce back 1.<br>
+    • <strong style="color:#c899ff">Reversal 🔄</strong> — swap with another player.<br>
+    • <strong style="color:#7ab8ff">Block 🛡️</strong> — auto-stash. Cancels one incoming attack.<br>
+    • <strong style="color:#ffd866">Boost ⬆️</strong> — you +2, ALL enemies −2 (blockable).<br>
+    • <strong style="color:#ff9aff">Random ❓</strong> — random reversal/block/boost.<br>
+    • <strong style="color:#ffaa66">Buffer 🎁</strong> — +1🔄 +1🛡️ +1⬆️⬆️ (super boost = 2×).<br>
+    • <strong style="color:#ffd700">All-in-One 💎</strong> — 1 per lane! Huge stash.<br>
+    • First to <strong style="color:#ffd700">🏁</strong> wins.
+  </div>
+  <div class="mode-grid">
+    <button class="big" id="modeOfflineBtn">🤖 Offline (vs Bot)</button>
+    <button class="big" id="modeMultiBtn">👥 Multiplayer (Local Hot-Seat)</button>
+  </div>
+</div>
+
+<!-- Multiplayer host/join screen -->
+<div class="panel hidden" id="mpScreen">
+  <h2>Multiplayer</h2>
+  <p><strong style="color:#ffd866;">⚠️ Each player must use their own device.</strong></p>
+  <p>One player <strong>hosts</strong> a room and shares the code; others <strong>join</strong> from their own phone/computer by entering it.</p>
+  <div class="mode-grid">
+    <button class="big" id="hostBtn">🏠 Host a Room</button>
+    <button class="big secondary" id="joinBtn">🔗 Join a Room</button>
+  </div>
+  <button class="back-link" id="mpBackBtn">← Back</button>
+</div>
+
+<!-- Host setup: pick player count and name -->
+<div class="panel hidden" id="hostSetupScreen">
+  <h2>Host Setup</h2>
+  <p>Pick max players (including you) and your name. You'll get a room code to share with friends on <strong>their own devices</strong>.</p>
+  <div class="count-grid">
+    <button class="big" data-host-count="2">2</button>
+    <button class="big" data-host-count="3">3</button>
+    <button class="big" data-host-count="4">4</button>
+  </div>
+  <div class="name-inputs">
+    <input type="text" id="hostName" placeholder="Your name" maxlength="14" />
+  </div>
+  <p id="hostMaxLabel" style="opacity:0.7; font-size:0.85rem;">Max players: not picked</p>
+  <button class="big" id="hostCreateBtn" disabled>Create Room</button>
+  <button class="back-link" id="hostBackBtn">← Back</button>
+</div>
+
+<!-- Join screen: enter room code and name -->
+<div class="panel hidden" id="joinScreen">
+  <h2>Join a Room</h2>
+  <p>Enter the host's room code from <strong>your own device</strong>.</p>
+  <div class="name-inputs">
+    <input type="text" id="joinCode" placeholder="Room code (e.g. trackrun-abc123)" maxlength="40" autocapitalize="off" autocomplete="off" />
+    <input type="text" id="joinName" placeholder="Your name" maxlength="14" />
+  </div>
+  <button class="big" id="joinConnectBtn">Connect</button>
+  <p id="joinStatus" style="opacity:0.85; min-height:1.2em; color:#ffd866;"></p>
+  <button class="back-link" id="joinBackBtn">← Back</button>
+</div>
+
+<!-- Lobby (waiting room) -->
+<div class="panel hidden" id="lobbyScreen">
+  <h2 id="lobbyTitle">Lobby</h2>
+  <p id="lobbyCodeLine"></p>
+  <div class="rules" id="lobbyPlayers" style="min-height:80px;">Waiting for players...</div>
+  <button class="big hidden" id="lobbyStartBtn">Start Game</button>
+  <p id="lobbyHint" style="opacity:0.75; font-size:0.85rem;"></p>
+  <button class="back-link" id="lobbyLeaveBtn">← Leave Room</button>
+</div>
+
+<!-- Player count screen (offline) -->
+<div class="panel hidden" id="countScreen">
+  <h2>How Many Players?</h2>
+  <p>Pick the total number of players (including you). The rest are bots.</p>
+  <div class="count-grid">
+    <button class="big" data-count="2">2</button>
+    <button class="big" data-count="3">3</button>
+    <button class="big" data-count="4">4</button>
+  </div>
+  <button class="back-link" id="backToMode">← Back</button>
+</div>
+
+<!-- Name screen -->
+<div class="panel hidden" id="nameScreen">
+  <h2 id="nameScreenTitle">Your Name</h2>
+  <div class="name-inputs" id="nameInputsContainer"></div>
+  <button class="big" id="startBtn">Start Game</button>
+  <button class="back-link" id="backFromName">← Back</button>
+</div>
+
+<!-- Game screen -->
+<div class="hidden" id="gameScreen" style="display:flex; flex-direction:column; align-items:center; width:100%;">
+  <div class="scoreboard" id="scoreboard"></div>
+  <div class="lanes" id="lanes"></div>
+</div>
+
+<div class="bottom-bar hidden" id="bottomBar">
+  <div class="status" id="status">Roll the die to advance!</div>
+  <div class="row" id="mainControls">
+    <div class="die" id="die"></div>
+    <button id="rollBtn">Roll Die</button>
+    <button id="useInvBtn" class="reversal-btn hidden">🔄 Use Reversal</button>
+    <button id="useBoostBtn" class="boost-btn hidden">⬆️ Use Boost</button>
+    <button id="useSuperBtn" class="super-btn hidden">⬆️⬆️ Use Super Boost</button>
+    <button id="resetBtn" class="secondary">New Match</button>
+  </div>
+  <div class="row hidden" id="choiceControls">
+    <button id="useNowBtn">Use Now</button>
+    <button id="keepBtn" class="secondary">Keep in Inventory</button>
+  </div>
+  <div class="row hidden" id="targetControls"></div>
+  <div class="row hidden" id="endControls">
+    <button id="playAgainBtn" class="big">Play Again</button>
+    <button id="menuBtn" class="secondary big">Main Menu</button>
+  </div>
+</div>
+
+<script>
+  const TRACK_LEN = 15;
+  const SAFE_RATIO = 0.30;
+  const EXPLODE_RATIO = 0.30;
+  const REVERSAL_RATIO = 0.10;
+  const BLOCK_RATIO = 0.10;
+  const BOOST_RATIO = 0.10;
+  const RANDOM_RATIO = 0.05;
+  const BUFFER_RATIO = 0.03;
+
+  const PIP_LAYOUTS = {
+    1: [4], 2: [0, 8], 3: [0, 4, 8],
+    4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8]
+  };
+
+  const $ = id => document.getElementById(id);
+
+  // Game config
+  let numPlayers = 2;
+  let isOffline = true;
+  let playerNames = [];
+  let isBot = [];   // bool array
+
+  // ---- Multiplayer state ----
+  let netRole = null;          // 'host' | 'client' | null
+  let myPeer = null;
+  let myPeerId = null;
+  let hostConn = null;         // client side: connection to host
+  let clientConns = [];        // host side: connections to each client
+  let localPlayerIdx = 0;      // which slot is "me"
+  let mpMaxPlayers = 2;
+  const ROOM_PREFIX = 'trackrun-';
+
+  // Per-player state
+  let positions = [];
+  let inventory = [];
+  let blocks = [];
+  let boosts = [];
+  let superBoosts = [];
+  let tracks = [];
+  let flipped = [];
+
+  // Turn state
+  let currentPlayer = 0; // 0-indexed
+  let busy = false;
+  let matchOver = false;
+  let awaitingChoice = null;  // 'reversal' | 'boost' | null
+  let awaitingTarget = null;  // 'reversal' (need target pick) | null
+  let pendingReversalSource = null; // pIdx of attacker awaiting target
+  let lastDieFace = null;
+  let winnerIdx = null;
+  let rewardShown = false;
+
+  // ---------- Track build & render ----------
+
+  function buildTracks() {
+    tracks = [];
+    flipped = [];
+    for (let p = 0; p < numPlayers; p++) {
+      const lane = [];
+      const fl = [];
+      for (let i = 0; i < TRACK_LEN - 1; i++) {
+        const r = Math.random();
+        let type, cum = 0;
+        if (r < (cum += SAFE_RATIO)) type = 'safe';
+        else if (r < (cum += EXPLODE_RATIO)) type = 'explode';
+        else if (r < (cum += REVERSAL_RATIO)) type = 'reversal';
+        else if (r < (cum += BLOCK_RATIO)) type = 'block';
+        else if (r < (cum += BOOST_RATIO)) type = 'boost';
+        else if (r < (cum += RANDOM_RATIO)) type = 'random';
+        else if (r < (cum += BUFFER_RATIO)) type = 'buffer';
+        else type = 'safe';
+        lane.push(type);
+        fl.push(false);
+      }
+      lane.push('goal');
+      fl.push(false);
+      // Force exactly 1 all-in-one per lane
+      const idx = Math.floor(Math.random() * (TRACK_LEN - 1));
+      lane[idx] = 'allinone';
+      tracks.push(lane);
+      flipped.push(fl);
+    }
+  }
+
+  function renderLanes() {
+    const lanesEl = $('lanes');
+    lanesEl.innerHTML = '';
+    for (let p = 0; p < numPlayers; p++) {
+      const lane = document.createElement('div');
+      lane.className = 'lane';
+      lane.id = `lane${p}`;
+      lane.innerHTML = `
+        <div class="lane-label"><span class="dot p${p}"></span><span>${escapeHtml(playerNames[p])}</span></div>
+        <div class="track-wrap">
+          <div class="end-label finish">🏁 FINISH</div>
+          <div class="track" id="track${p}"></div>
+          <div class="end-label start">START ▲</div>
+        </div>
+      `;
+      lanesEl.appendChild(lane);
+      const trackEl = lane.querySelector(`#track${p}`);
+      for (let i = 0; i < TRACK_LEN; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.innerHTML = `
+          <div class="cell-index">${i + 1}</div>
+          <div class="card back" id="p${p}card${i}"></div>
+          <div class="tokens" id="p${p}tokens${i}"></div>
+        `;
+        trackEl.appendChild(cell);
+      }
+      for (let i = 0; i < TRACK_LEN; i++) {
+        if (flipped[p][i] || tracks[p][i] === 'goal') showFace(p, i, false);
+      }
+    }
+    renderTokens();
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function showFace(p, i, animate) {
+    const el = $(`p${p}card${i}`);
+    if (!el) return;
+    el.classList.remove('back');
+    const t = tracks[p][i];
+    const map = {safe:'✓', explode:'💥', reversal:'🔄', block:'🛡️', boost:'⬆️', random:'❓', buffer:'🎁', allinone:'💎', goal:'🏁'};
+    el.className = 'card ' + t;
+    el.textContent = map[t] || '';
+    if (animate) {
+      el.classList.remove('flip-anim');
+      void el.offsetWidth;
+      el.classList.add('flip-anim');
+    }
+  }
+
+  const PLAYER_HEADS = ['😀', '😎', '🤖', '👻'];
+
+  function renderTokens() {
+    for (let p = 0; p < numPlayers; p++) {
+      for (let i = 0; i < TRACK_LEN; i++) {
+        const el = $(`p${p}tokens${i}`);
+        if (el) el.innerHTML = '';
+      }
+    }
+    for (let p = 0; p < numPlayers; p++) {
+      const pos = positions[p];
+      if (pos >= 0) {
+        const el = $(`p${p}tokens${pos}`);
+        if (el) {
+          const meClass = (p === localPlayerIdx) ? ' me' : '';
+          el.innerHTML = `<div class="token p${p}${meClass}" title="${escapeHtml(playerNames[p])}">${PLAYER_HEADS[p] || '👤'}</div>`;
+        }
+      }
+    }
+  }
+
+  function renderDie(face) {
+    const el = $('die');
+    el.innerHTML = '';
+    const on = new Set(PIP_LAYOUTS[face]);
+    for (let i = 0; i < 9; i++) {
+      const pip = document.createElement('div');
+      pip.className = 'pip' + (on.has(i) ? ' on' : '');
+      el.appendChild(pip);
+    }
+    el.classList.remove('rolling');
+    void el.offsetWidth;
+    el.classList.add('rolling');
+  }
+
+  // ---------- UI updates ----------
+
+  function renderScoreboard() {
+    const sb = $('scoreboard');
+    sb.innerHTML = '';
+    for (let p = 0; p < numPlayers; p++) {
+      const sc = document.createElement('div');
+      sc.className = 'score' + (p === currentPlayer && !matchOver ? ' active' : '');
+      sc.id = `score${p}`;
+      const posLabel = positions[p] < 0 ? 'Start' : (positions[p] + 1);
+      sc.innerHTML = `
+        <div class="label">${escapeHtml(playerNames[p])}${isBot[p] ? ' 🤖' : ''}</div>
+        <div class="value">${posLabel}</div>
+        <div class="inv">🔄<strong>${inventory[p]}</strong> 🛡️<strong>${blocks[p]}</strong> ⬆️<strong>${boosts[p]}</strong> ⬆️⬆️<strong>${superBoosts[p]}</strong></div>
+      `;
+      sb.appendChild(sc);
+      if (p < numPlayers - 1) {
+        // Insert turn indicator after current player's tile
+      }
+    }
+    // Add a separate turn indicator at end
+    const ti = document.createElement('div');
+    ti.className = 'turn-indicator';
+    ti.id = 'turnIndicator';
+    ti.textContent = matchOver ? 'Game Over' : `${playerNames[currentPlayer]}'s turn`;
+    sb.appendChild(ti);
+  }
+
+  function updateLaneHighlight() {
+    for (let p = 0; p < numPlayers; p++) {
+      const lane = $(`lane${p}`);
+      if (lane) lane.classList.toggle('active', !matchOver && p === currentPlayer);
+    }
+  }
+
+  function updateInventoryButtons() {
+    const p = currentPlayer;
+    const canAct = !matchOver && !awaitingChoice && !awaitingTarget && !busy && iAmActive();
+    const setBtn = (id, show) => {
+      const b = $(id);
+      if (canAct && show) { b.classList.remove('hidden'); b.disabled = false; }
+      else b.classList.add('hidden');
+    };
+    setBtn('useInvBtn', inventory[p] > 0);
+    setBtn('useBoostBtn', boosts[p] > 0);
+    setBtn('useSuperBtn', superBoosts[p] > 0);
+    $('rollBtn').disabled = busy || matchOver || awaitingChoice || awaitingTarget || !iAmActive();
+  }
+
+  function updateAllUI() {
+    renderScoreboard();
+    updateLaneHighlight();
+    updateInventoryButtons();
+    if (netRole === 'host') scheduleBroadcast();
+  }
+
+  function showChoiceUI(show) {
+    $('mainControls').classList.toggle('hidden', show);
+    $('choiceControls').classList.toggle('hidden', !show);
+  }
+
+  function showTargetUI(show) {
+    $('mainControls').classList.toggle('hidden', show);
+    $('targetControls').classList.toggle('hidden', !show);
+  }
+
+  function showEndControls() {
+    $('mainControls').classList.add('hidden');
+    $('choiceControls').classList.add('hidden');
+    $('targetControls').classList.add('hidden');
+    $('endControls').classList.remove('hidden');
+    // Clients can't restart (only host); hide Play Again for them
+    $('playAgainBtn').classList.toggle('hidden', netRole === 'client');
+  }
+
+  function hideEndControls() {
+    $('endControls').classList.add('hidden');
+    $('mainControls').classList.remove('hidden');
+  }
+
+  function scrollToToken(pIdx, pos) {
+    const targetIdx = pos < 0 ? 0 : pos;
+    const el = $(`p${pIdx}card${targetIdx}`);
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const targetY = window.scrollY + rect.top - (window.innerHeight / 2) + (rect.height / 2);
+    window.scrollTo({ top: targetY, behavior: 'smooth' });
+  }
+
+  // ---------- Effects ----------
+
+  function performSwap(pIdx, targetIdx, reason) {
+    const name = playerNames[pIdx];
+    const tName = playerNames[targetIdx];
+    if (blocks[targetIdx] > 0) {
+      blocks[targetIdx]--;
+      updateAllUI();
+      $('status').textContent = `🛡️ ${tName} used a block! ${name}'s reversal was stopped.`;
+      return;
+    }
+    const myPos = positions[pIdx];
+    positions[pIdx] = positions[targetIdx];
+    positions[targetIdx] = myPos;
+    if (positions[pIdx] >= 0) {
+      flipped[pIdx][positions[pIdx]] = true;
+      if (tracks[pIdx][positions[pIdx]] !== 'goal') showFace(pIdx, positions[pIdx], true);
+    }
+    if (positions[targetIdx] >= 0) {
+      flipped[targetIdx][positions[targetIdx]] = true;
+      if (tracks[targetIdx][positions[targetIdx]] !== 'goal') showFace(targetIdx, positions[targetIdx], true);
+    }
+    renderTokens();
+    updateAllUI();
+    scrollToToken(pIdx, positions[pIdx]);
+    $('status').textContent = `🔄 ${reason} ${name} swapped places with ${tName}!`;
+  }
+
+  function performBoost(pIdx, multiplier) {
+    const amount = 2 * (multiplier || 1);
+    const name = playerNames[pIdx];
+    const icon = multiplier === 2 ? '⬆️⬆️' : '⬆️';
+
+    const myOld = positions[pIdx];
+    let myNew = myOld + amount;
+    if (myNew >= TRACK_LEN) myNew = TRACK_LEN - 1;
+    positions[pIdx] = myNew;
+    for (let i = 0; i <= myNew; i++) {
+      const wasFlipped = flipped[pIdx][i];
+      flipped[pIdx][i] = true;
+      if (tracks[pIdx][i] !== 'goal') showFace(pIdx, i, !wasFlipped);
+    }
+
+    if (tracks[pIdx][myNew] === 'goal') {
+      renderTokens();
+      updateAllUI();
+      scrollToToken(pIdx, myNew);
+      declareWinner(pIdx, 'boosted to');
+      return;
+    }
+
+    // Knock down ALL enemies (blockable per enemy)
+    const blockedNames = [];
+    const hitNames = [];
+    for (let e = 0; e < numPlayers; e++) {
+      if (e === pIdx) continue;
+      if (blocks[e] > 0) {
+        blocks[e]--;
+        blockedNames.push(playerNames[e]);
+      } else {
+        let oppNew = positions[e] - amount;
+        if (oppNew < -1) oppNew = -1;
+        positions[e] = oppNew;
+        hitNames.push(playerNames[e]);
+      }
+    }
+    renderTokens();
+    updateAllUI();
+    scrollToToken(pIdx, positions[pIdx]);
+    let msg = `${icon} ${name} boosted up ${amount}!`;
+    if (hitNames.length) msg += ` Knocked back: ${hitNames.join(', ')}.`;
+    if (blockedNames.length) msg += ` Blocked by: ${blockedNames.join(', ')} 🛡️.`;
+    $('status').textContent = msg;
+  }
+
+  function declareWinner(pIdx, verb) {
+    matchOver = true;
+    winnerIdx = pIdx;
+    $('status').innerHTML = `<div class="match-end">🏆 ${playerNames[pIdx]} ${verb} the finish and wins!</div>`;
+    showEndControls();
+    updateAllUI();
+    busy = false;
+    maybeShowReward();
+  }
+
+  // High-tier skin pool — winners deserve the good stuff
+  const PRIMARY_SKINS = [
+    { weapon: 'AK-47', skin: 'Fire Serpent', rarity: 'Covert' },
+    { weapon: 'AK-47', skin: 'Wild Lotus', rarity: 'Contraband' },
+    { weapon: 'AK-47', skin: 'Vulcan', rarity: 'Covert' },
+    { weapon: 'AK-47', skin: 'Asiimov', rarity: 'Covert' },
+    { weapon: 'AK-47', skin: 'Neon Rider', rarity: 'Covert' },
+    { weapon: 'AK-47', skin: 'The Empress', rarity: 'Covert' },
+    { weapon: 'M4A1-S', skin: 'Hyper Beast', rarity: 'Covert' },
+    { weapon: 'M4A1-S', skin: 'Printstream', rarity: 'Covert' },
+    { weapon: 'M4A1-S', skin: 'Howl', rarity: 'Contraband' },
+    { weapon: 'M4A1-S', skin: 'Master Piece', rarity: 'Covert' },
+    { weapon: 'M4A4', skin: 'Howl', rarity: 'Contraband' },
+    { weapon: 'M4A4', skin: 'Neo-Noir', rarity: 'Covert' },
+    { weapon: 'M4A4', skin: 'The Emperor', rarity: 'Covert' },
+    { weapon: 'AWP', skin: 'Dragon Lore', rarity: 'Covert' },
+    { weapon: 'AWP', skin: 'Medusa', rarity: 'Covert' },
+    { weapon: 'AWP', skin: 'Gungnir', rarity: 'Covert' },
+    { weapon: 'AWP', skin: 'Containment Breach', rarity: 'Covert' },
+    { weapon: 'AWP', skin: 'Asiimov', rarity: 'Covert' },
+    { weapon: 'AWP', skin: 'Wildfire', rarity: 'Covert' },
+  ];
+  const SIDEARM_SKINS = [
+    { weapon: 'Desert Eagle', skin: 'Blaze', rarity: 'Restricted' },
+    { weapon: 'Desert Eagle', skin: 'Printstream', rarity: 'Covert' },
+    { weapon: 'Desert Eagle', skin: 'Code Red', rarity: 'Covert' },
+    { weapon: 'Desert Eagle', skin: 'Golden Koi', rarity: 'Classified' },
+    { weapon: 'Glock-18', skin: 'Fade', rarity: 'Restricted' },
+    { weapon: 'Glock-18', skin: 'Water Elemental', rarity: 'Classified' },
+    { weapon: 'Glock-18', skin: 'Bullet Queen', rarity: 'Covert' },
+    { weapon: 'USP-S', skin: 'Kill Confirmed', rarity: 'Covert' },
+    { weapon: 'USP-S', skin: 'Orion', rarity: 'Covert' },
+    { weapon: 'USP-S', skin: 'Printstream', rarity: 'Covert' },
+  ];
+  const KNIFE_SKINS = [
+    { weapon: 'Karambit', skin: 'Doppler', rarity: '★ Knife' },
+    { weapon: 'Karambit', skin: 'Fade', rarity: '★ Knife' },
+    { weapon: 'Karambit', skin: 'Crimson Web', rarity: '★ Knife' },
+    { weapon: 'Karambit', skin: 'Marble Fade', rarity: '★ Knife' },
+    { weapon: 'Butterfly Knife', skin: 'Doppler', rarity: '★ Knife' },
+    { weapon: 'Butterfly Knife', skin: 'Crimson Web', rarity: '★ Knife' },
+    { weapon: 'Butterfly Knife', skin: 'Tiger Tooth', rarity: '★ Knife' },
+    { weapon: 'M9 Bayonet', skin: 'Marble Fade', rarity: '★ Knife' },
+    { weapon: 'M9 Bayonet', skin: 'Doppler', rarity: '★ Knife' },
+    { weapon: 'Talon Knife', skin: 'Tiger Tooth', rarity: '★ Knife' },
+    { weapon: 'Talon Knife', skin: 'Fade', rarity: '★ Knife' },
+    { weapon: 'Skeleton Knife', skin: 'Fade', rarity: '★ Knife' },
+    { weapon: 'Skeleton Knife', skin: 'Crimson Web', rarity: '★ Knife' },
+  ];
+  const WEAR_LEVELS = [
+    { name: 'Factory New', weight: 1 },
+    { name: 'Minimal Wear', weight: 2 },
+    { name: 'Field-Tested', weight: 4 },
+    { name: 'Well-Worn', weight: 2 },
+    { name: 'Battle-Scarred', weight: 1 },
+  ];
+  const RARITY_COLOR = {
+    'Restricted': '#8847ff',
+    'Classified': '#d32ce6',
+    'Covert': '#eb4b4b',
+    'Contraband': '#e4ae39',
+    '★ Knife': '#ffd700',
+  };
+  const RIVALS_TIPS = [
+    'Pre-aim corners at head height',
+    'Counter-strafe before shooting for full accuracy',
+    'Tap-fire at long range, spray up close',
+    'Always carry a smoke for site executes',
+    'Listen for footsteps — sound wins fights',
+    'Never peek the same angle twice in a row',
+    'Save your utility for the round you actually need it',
+    'Crosshair placement beats aim flicks',
+    'Reload behind cover, not in the open',
+    'Trade kills — push together, not solo',
+  ];
+
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  function pickWear() {
+    const total = WEAR_LEVELS.reduce((s, w) => s + w.weight, 0);
+    let r = Math.random() * total;
+    for (const w of WEAR_LEVELS) {
+      r -= w.weight;
+      if (r <= 0) return w.name;
+    }
+    return WEAR_LEVELS[0].name;
+  }
+
+  function generateRivalsLoadout() {
+    return {
+      primary: { ...pick(PRIMARY_SKINS), wear: pickWear() },
+      sidearm: { ...pick(SIDEARM_SKINS), wear: pickWear() },
+      knife: { ...pick(KNIFE_SKINS), wear: pickWear() },
+      tip: pick(RIVALS_TIPS),
+    };
+  }
+
+  // Most recent Rivals promo codes — older milestone/event codes were removed as likely expired
+  const RIVALS_CODES = [
+    'FREE176', 'FREE173', 'FREE172', 'COMMUNITY22', 'FREE171',
+    'FREE169', 'FREE160', 'COMMUNITY21', 'FREE167', 'FREE165',
+    'FREE158', 'FREE155', 'FREE150', 'COMMUNITY20'
+  ];
+
+  function generatePrizeCode() {
+    return RIVALS_CODES[Math.floor(Math.random() * RIVALS_CODES.length)];
+  }
+
+  function maybeShowReward() {
+    if (winnerIdx === null) return;
+    if (rewardShown) return;
+    if (winnerIdx !== localPlayerIdx) return;
+    rewardShown = true;
+    const loadout = generateRivalsLoadout();
+    const boxId = 'prizeBox_' + Math.random().toString(36).substr(2, 6);
+    window.__loadouts = window.__loadouts || {};
+    window.__loadouts[boxId] = loadout;
+    const existing = $('status').innerHTML;
+    $('status').innerHTML = existing + `
+      <div class="reward-box clickable-box" id="${boxId}" data-box-id="${boxId}">
+        <div class="reward-title">🏆 Victory! Click to Open Your Crate</div>
+        <div class="prize-gift">📦</div>
+        <div class="reward-note">Click anywhere on this box!</div>
+      </div>
+    `;
+    // Wire up the click via addEventListener (avoids any inline-handler issues)
+    const box = document.getElementById(boxId);
+    if (box) {
+      box.style.cursor = 'pointer';
+      box.addEventListener('click', () => window.__openPrize(boxId), { once: true });
+    }
+  }
+
+  window.__openPrize = function(boxId) {
+    const box = document.getElementById(boxId);
+    if (!box || box.dataset.opened === '1') return;
+    box.dataset.opened = '1';
+    const loadout = (window.__loadouts || {})[boxId];
+    if (!loadout) return;
+
+    // Phase 1: shake
+    box.innerHTML = `
+      <div class="cutscene-shake">📦</div>
+      <div class="cutscene-text">Unboxing...</div>
+    `;
+
+    // Phase 2: burst
+    setTimeout(() => {
+      box.innerHTML = `<div class="cutscene-burst">✨💥✨</div>`;
+    }, 1200);
+
+    // Phase 3: reveal
+    setTimeout(() => {
+      const code = generatePrizeCode();
+      box.innerHTML = `
+        <div class="reward-title reveal-animate">🎉 Your Rivals Code 🎉</div>
+        <div class="copy-hint reveal-animate">👇 click code to copy 👇</div>
+        <div class="reward-code reveal-animate" title="Click to copy" onclick="window.__copyCode && window.__copyCode('${code}', this)">${code}</div>
+        <div class="copy-hint reveal-animate">☝️ click code to copy ☝️</div>
+        <div class="loadout-tip reveal-animate">📝 Redeem in <strong>Rivals → Settings → Codes</strong>. Some codes may have expired.</div>
+        <a class="redeem-btn reveal-animate" href="https://www.roblox.com/games/17625359962/RIVALS" target="_blank" rel="noopener noreferrer">🎮 Open Rivals on Roblox</a>
+        <div class="reward-note reveal-animate">💡 Pro tip: ${loadout.tip}</div>
+      `;
+    }, 1950);
+  };
+
+  window.__copyCode = function(code, el) {
+    const flash = () => {
+      const orig = el.textContent;
+      el.textContent = 'Copied! ✓';
+      setTimeout(() => { el.textContent = orig; }, 1200);
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(code).then(flash).catch(() => fallbackCopy(code, flash));
+    } else {
+      fallbackCopy(code, flash);
+    }
+  };
+
+  function fallbackCopy(text, onSuccess) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); onSuccess && onSuccess(); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+
+  // ---------- Turn loop ----------
+
+  function endTurn() {
+    setTimeout(() => {
+      if (matchOver) return;
+      currentPlayer = (currentPlayer + 1) % numPlayers;
+      busy = false;
+      updateAllUI();
+      $('status').textContent += ` — ${playerNames[currentPlayer]}'s turn.`;
+      maybeBotTurn();
+    }, 1100);
+  }
+
+  function maybeBotTurn() {
+    if (matchOver) return;
+    if (!isBot[currentPlayer]) return;
+    setTimeout(botTakeTurn, 900);
+  }
+
+  function botTakeTurn() {
+    if (matchOver) return;
+    const p = currentPlayer;
+    // Bot strategy:
+    // 1. Use super boost if available (great offense/defense)
+    if (superBoosts[p] > 0 && Math.random() < 0.6) { botUseSuper(); return; }
+    // 2. Use boost if behind any opponent
+    if (boosts[p] > 0 && isBehindLeader(p) && Math.random() < 0.7) { botUseBoost(); return; }
+    // 3. Use reversal if far behind the leader
+    if (inventory[p] > 0 && isFarBehind(p) && Math.random() < 0.7) { botUseReversal(); return; }
+    // 4. Otherwise just roll
+    doRoll(false);
+  }
+
+  function isBehindLeader(p) {
+    const leader = leaderIdx();
+    return leader !== p && positions[leader] > positions[p];
+  }
+
+  function isFarBehind(p) {
+    const leader = leaderIdx();
+    return leader !== p && (positions[leader] - positions[p]) >= 3;
+  }
+
+  function leaderIdx() {
+    let best = 0;
+    for (let i = 1; i < numPlayers; i++) {
+      if (positions[i] > positions[best]) best = i;
+    }
+    return best;
+  }
+
+  function botUseSuper() {
+    busy = true;
+    superBoosts[currentPlayer]--;
+    updateAllUI();
+    performBoost(currentPlayer, 2);
+    if (!matchOver) endTurn();
+  }
+
+  function botUseBoost() {
+    busy = true;
+    boosts[currentPlayer]--;
+    updateAllUI();
+    performBoost(currentPlayer, 1);
+    if (!matchOver) endTurn();
+  }
+
+  function botUseReversal() {
+    busy = true;
+    inventory[currentPlayer]--;
+    updateAllUI();
+    const target = leaderIdx();
+    performSwap(currentPlayer, target, 'Used a saved reversal!');
+    if (!matchOver) endTurn();
+  }
+
+  // ---------- Rolling ----------
+
+  function rollDie() {
+    if (busy || matchOver || awaitingChoice || awaitingTarget) return;
+    if (!iAmActive()) return;
+    if (netRole === 'client') { sendAction({ kind: 'ROLL' }); return; }
+    if (isBot[currentPlayer]) return;
+    doRoll(false);
+  }
+
+  function doRoll(_isAuto) {
+    busy = true;
+    updateInventoryButtons();
+    const face = Math.floor(Math.random() * 6) + 1;
+    lastDieFace = face;
+    renderDie(face);
+    $('status').textContent = `${playerNames[currentPlayer]} rolled ${face}. Moving...`;
+    if (netRole === 'host') scheduleBroadcast();
+    setTimeout(() => moveAndResolve(face), 650);
+  }
+
+  function afterMoveResolve() {
+    if (matchOver) return;
+    endTurn();
+  }
+
+  function moveAndResolve(steps) {
+    const p = currentPlayer;
+    const oldPos = positions[p];
+    let newPos = oldPos + steps;
+    if (newPos >= TRACK_LEN) newPos = TRACK_LEN - 1;
+    positions[p] = newPos;
+    renderTokens();
+    updateAllUI();
+    scrollToToken(p, newPos);
+
+    for (let i = oldPos + 1; i <= newPos; i++) {
+      const wasFlipped = flipped[p][i];
+      flipped[p][i] = true;
+      if (tracks[p][i] !== 'goal') showFace(p, i, !wasFlipped);
+    }
+
+    const type = tracks[p][newPos];
+    const name = playerNames[p];
+
+    if (type === 'goal') {
+      declareWinner(p, 'reached');
+      return;
+    }
+
+    setTimeout(() => {
+      if (type === 'explode') {
+        let bouncePos = newPos - 1;
+        if (bouncePos < -1) bouncePos = -1;
+        positions[p] = bouncePos;
+        renderTokens();
+        updateAllUI();
+        scrollToToken(p, bouncePos);
+        $('status').textContent = `💥 ${name} hit an explode card! Bounced back 1.`;
+        afterMoveResolve();
+      } else if (type === 'reversal') {
+        if (isBot[p]) {
+          if (isBehindLeader(p)) {
+            performSwap(p, leaderIdx(), 'Reversal played!');
+            afterMoveResolve();
+          } else {
+            inventory[p]++;
+            updateAllUI();
+            $('status').textContent = `📥 ${name} stashed the reversal. (🔄 ${inventory[p]})`;
+            afterMoveResolve();
+          }
+        } else {
+          awaitingChoice = 'reversal';
+          $('status').textContent = `🔄 ${name} found a reversal card! Use it now or keep it?`;
+          if (iAmActive()) {
+            $('useNowBtn').textContent = '🔄 Use Now (Swap)';
+            showChoiceUI(true);
+          }
+          updateAllUI();
+        }
+      } else if (type === 'boost') {
+        if (isBot[p]) {
+          const leader = leaderIdx();
+          if (leader === p && positions[p] - secondPlace(p) > 4) {
+            boosts[p]++;
+            updateAllUI();
+            $('status').textContent = `📥 ${name} stashed the boost. (⬆️ ${boosts[p]})`;
+            afterMoveResolve();
+          } else {
+            performBoost(p, 1);
+            afterMoveResolve();
+          }
+        } else {
+          awaitingChoice = 'boost';
+          $('status').textContent = `⬆️ ${name} found a boost card! Use it now or keep it?`;
+          if (iAmActive()) {
+            $('useNowBtn').textContent = '⬆️ Use Now (+2 / all enemies −2)';
+            showChoiceUI(true);
+          }
+          updateAllUI();
+        }
+      } else if (type === 'block') {
+        blocks[p]++;
+        updateAllUI();
+        $('status').textContent = `🛡️ ${name} picked up a block! (Total: ${blocks[p]})`;
+        afterMoveResolve();
+      } else if (type === 'random') {
+        const picks = ['reversal', 'block', 'boost'];
+        const picked = picks[Math.floor(Math.random() * picks.length)];
+        if (picked === 'reversal') inventory[p]++;
+        else if (picked === 'block') blocks[p]++;
+        else boosts[p]++;
+        const icon = picked === 'reversal' ? '🔄' : picked === 'block' ? '🛡️' : '⬆️';
+        updateAllUI();
+        $('status').textContent = `❓ ${name} drew a random → ${icon} ${picked}!`;
+        afterMoveResolve();
+      } else if (type === 'buffer') {
+        inventory[p]++;
+        blocks[p]++;
+        superBoosts[p]++;
+        updateAllUI();
+        $('status').textContent = `🎁 ${name} opened a buffer! +🔄 +🛡️ +⬆️⬆️.`;
+        afterMoveResolve();
+      } else if (type === 'allinone') {
+        inventory[p] += 3;  // 2 direct + 1 from buffer
+        blocks[p] += 3;     // 2 direct + 1 from buffer
+        boosts[p] += 2;     // 2 direct
+        superBoosts[p]++;   // from buffer
+        const picks = ['reversal', 'block', 'boost'];
+        const picked = picks[Math.floor(Math.random() * picks.length)];
+        if (picked === 'reversal') inventory[p]++;
+        else if (picked === 'block') blocks[p]++;
+        else boosts[p]++;
+        const pickIcon = picked === 'reversal' ? '🔄' : picked === 'block' ? '🛡️' : '⬆️';
+        updateAllUI();
+        $('status').textContent = `💎 ${name} found the All-in-One! Total gained: 3🔄 + 3🛡️ + 2⬆️ + 1⬆️⬆️ + 1${pickIcon} (random).`;
+        afterMoveResolve();
+      } else {
+        $('status').textContent = `✓ ${name} landed safe.`;
+        afterMoveResolve();
+      }
+    }, type === 'explode' ? 700 : 300);
+  }
+
+  function secondPlace(excludeP) {
+    let best = -2;
+    for (let i = 0; i < numPlayers; i++) {
+      if (i === excludeP) continue;
+      if (positions[i] > best) best = positions[i];
+    }
+    return best;
+  }
+
+  // ---------- Choice handlers (human) ----------
+
+  function chooseUseNow() {
+    if (!awaitingChoice) return;
+    if (!iAmActive()) return;
+    if (netRole === 'client') { sendAction({ kind: 'CHOOSE_USE_NOW' }); return; }
+    doChooseUseNow();
+  }
+
+  function doChooseUseNow() {
+    if (!awaitingChoice) return;
+    busy = true;
+    const p = currentPlayer;
+    const kind = awaitingChoice;
+    awaitingChoice = null;
+    showChoiceUI(false);
+    if (kind === 'reversal') {
+      promptReversalTarget(p, false);
+    } else if (kind === 'boost') {
+      performBoost(p, 1);
+      if (!matchOver) afterMoveResolve();
+    }
+  }
+
+  function chooseKeep() {
+    if (!awaitingChoice) return;
+    if (!iAmActive()) return;
+    if (netRole === 'client') { sendAction({ kind: 'CHOOSE_KEEP' }); return; }
+    doChooseKeep();
+  }
+
+  function doChooseKeep() {
+    if (!awaitingChoice) return;
+    busy = true;
+    const p = currentPlayer;
+    const kind = awaitingChoice;
+    if (kind === 'reversal') {
+      inventory[p]++;
+      $('status').textContent = `📥 ${playerNames[p]} stashed the reversal. (🔄 ${inventory[p]})`;
+    } else if (kind === 'boost') {
+      boosts[p]++;
+      $('status').textContent = `📥 ${playerNames[p]} stashed the boost. (⬆️ ${boosts[p]})`;
+    }
+    awaitingChoice = null;
+    showChoiceUI(false);
+    updateAllUI();
+    afterMoveResolve();
+  }
+
+  function promptReversalTarget(p, fromInventory) {
+    const opponents = [];
+    for (let i = 0; i < numPlayers; i++) if (i !== p) opponents.push(i);
+    if (opponents.length === 1) {
+      performSwap(p, opponents[0], fromInventory ? 'Used a saved reversal!' : 'Reversal played!');
+      if (fromInventory) endTurn();
+      else if (!matchOver) afterMoveResolve();
+      return;
+    }
+    awaitingTarget = 'reversal';
+    pendingReversalSource = { pIdx: p, fromInventory };
+    if (iAmActive()) {
+      const tc = $('targetControls');
+      tc.innerHTML = '<span style="color:#ffd866; margin-right:8px; font-weight:600;">Swap with:</span>';
+      opponents.forEach(opp => {
+        const b = document.createElement('button');
+        b.className = 'reversal-btn';
+        b.textContent = `${playerNames[opp]} (pos ${positions[opp] < 0 ? 'Start' : positions[opp] + 1})`;
+        b.onclick = () => pickReversalTarget(opp);
+        tc.appendChild(b);
+      });
+      showTargetUI(true);
+    }
+    $('status').textContent = `${playerNames[p]} — choose a player to swap places with.`;
+    updateAllUI();
+  }
+
+  function pickReversalTarget(targetIdx) {
+    if (!awaitingTarget || !pendingReversalSource) return;
+    if (!iAmActive()) return;
+    if (netRole === 'client') { sendAction({ kind: 'PICK_TARGET', targetIdx }); return; }
+    doPickReversalTarget(targetIdx);
+  }
+
+  function doPickReversalTarget(targetIdx) {
+    if (!awaitingTarget || !pendingReversalSource) return;
+    const { pIdx, fromInventory } = pendingReversalSource;
+    awaitingTarget = null;
+    pendingReversalSource = null;
+    showTargetUI(false);
+    performSwap(pIdx, targetIdx, fromInventory ? 'Used a saved reversal!' : 'Reversal played!');
+    if (fromInventory) endTurn();
+    else if (!matchOver) afterMoveResolve();
+  }
+
+  // ---------- Inventory uses (human) ----------
+
+  function useInventoryReversal() {
+    if (busy || matchOver || awaitingChoice || awaitingTarget) return;
+    if (!iAmActive()) return;
+    if (netRole === 'client') { sendAction({ kind: 'USE_INV_REVERSAL' }); return; }
+    doUseInventoryReversal();
+  }
+
+  function doUseInventoryReversal() {
+    if (inventory[currentPlayer] <= 0) return;
+    busy = true;
+    inventory[currentPlayer]--;
+    updateAllUI();
+    promptReversalTarget(currentPlayer, true);
+  }
+
+  function useInventoryBoost() {
+    if (busy || matchOver || awaitingChoice || awaitingTarget) return;
+    if (!iAmActive()) return;
+    if (netRole === 'client') { sendAction({ kind: 'USE_INV_BOOST' }); return; }
+    doUseInventoryBoost();
+  }
+
+  function doUseInventoryBoost() {
+    if (boosts[currentPlayer] <= 0) return;
+    busy = true;
+    boosts[currentPlayer]--;
+    updateAllUI();
+    performBoost(currentPlayer, 1);
+    if (!matchOver) endTurn();
+  }
+
+  function useInventorySuperBoost() {
+    if (busy || matchOver || awaitingChoice || awaitingTarget) return;
+    if (!iAmActive()) return;
+    if (netRole === 'client') { sendAction({ kind: 'USE_INV_SUPER' }); return; }
+    doUseInventorySuperBoost();
+  }
+
+  function doUseInventorySuperBoost() {
+    if (superBoosts[currentPlayer] <= 0) return;
+    busy = true;
+    superBoosts[currentPlayer]--;
+    updateAllUI();
+    performBoost(currentPlayer, 2);
+    if (!matchOver) endTurn();
+  }
+
+  // ---------- Setup flow ----------
+
+  function showScreen(id) {
+    ['modeScreen', 'mpScreen', 'hostSetupScreen', 'joinScreen', 'lobbyScreen', 'countScreen', 'nameScreen', 'gameScreen'].forEach(s => {
+      $(s).classList.toggle('hidden', s !== id);
+    });
+    $('bottomBar').classList.toggle('hidden', id !== 'gameScreen');
+  }
+
+  function pickMode(offline) {
+    isOffline = offline;
+    if (offline) {
+      numPlayers = 2;
+      buildNameInputs();
+      showScreen('nameScreen');
+      const first = document.querySelector('#nameInputsContainer input');
+      if (first) first.focus();
+    } else {
+      showScreen('mpScreen');
+    }
+  }
+
+  function pickCount(n) {
+    numPlayers = n;
+    buildNameInputs();
+    showScreen('nameScreen');
+    const first = document.querySelector('#nameInputsContainer input');
+    if (first) first.focus();
+  }
+
+  function buildNameInputs() {
+    const container = $('nameInputsContainer');
+    container.innerHTML = '';
+    if (isOffline) {
+      $('nameScreenTitle').textContent = 'Your Name';
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.id = 'nameInput0';
+      inp.placeholder = 'Your name';
+      inp.maxLength = 14;
+      container.appendChild(inp);
+    } else {
+      $('nameScreenTitle').textContent = 'Player Names';
+      for (let i = 0; i < numPlayers; i++) {
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.id = `nameInput${i}`;
+        inp.placeholder = `Player ${i + 1} name`;
+        inp.maxLength = 14;
+        container.appendChild(inp);
+      }
+    }
+  }
+
+  function startGame() {
+    playerNames = [];
+    isBot = [];
+    for (let i = 0; i < numPlayers; i++) {
+      const inp = $(`nameInput${i}`);
+      const name = (inp ? inp.value.trim() : '') || (i === 0 ? 'You' : `Player ${i + 1}`);
+      playerNames.push(name);
+      isBot.push(isOffline && i > 0);
+    }
+    // In offline mode, rename bot slots
+    if (isOffline) {
+      for (let i = 1; i < numPlayers; i++) playerNames[i] = `Bot ${i}`;
+    }
+    showScreen('gameScreen');
+    resetMatch();
+  }
+
+  function resetMatch() {
+    if (netRole === 'client') return; // clients can't restart; host does it
+    positions = new Array(numPlayers).fill(-1);
+    inventory = new Array(numPlayers).fill(0);
+    blocks = new Array(numPlayers).fill(0);
+    boosts = new Array(numPlayers).fill(0);
+    superBoosts = new Array(numPlayers).fill(0);
+    currentPlayer = 0;
+    matchOver = false;
+    busy = false;
+    awaitingChoice = null;
+    awaitingTarget = null;
+    pendingReversalSource = null;
+    lastDieFace = null;
+    winnerIdx = null;
+    rewardShown = false;
+    buildTracks();
+    renderLanes();
+    updateAllUI();
+    showChoiceUI(false);
+    showTargetUI(false);
+    hideEndControls();
+    $('die').innerHTML = '';
+    $('status').textContent = `${playerNames[0]} starts — roll the die!`;
+    if (netRole === 'host') {
+      // Broadcast full restart
+      const state = serializeState();
+      clientConns.forEach(c => {
+        try { c.send({ type: 'START', numPlayers, playerNames, isBot, state }); } catch (e) {}
+      });
+      // Also hide end controls on clients (they'll receive START which renders)
+    }
+    maybeBotTurn();
+  }
+
+  function goToMainMenu() {
+    matchOver = true;
+    if (netRole === 'host' || netRole === 'client') {
+      leaveRoom();
+    } else {
+      showScreen('modeScreen');
+    }
+    hideEndControls();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ---------- Multiplayer / Networking ----------
+
+  function iAmActive() {
+    if (netRole === 'host' || netRole === 'client') {
+      return currentPlayer === localPlayerIdx;
+    }
+    return !isBot[currentPlayer];
+  }
+
+  function genRoomCode() {
+    const rand = Math.random().toString(36).substr(2, 7);
+    return ROOM_PREFIX + rand;
+  }
+
+  function startHosting(roomCode) {
+    $('lobbyTitle').textContent = 'Hosting (connecting to broker...)';
+    $('lobbyCodeLine').textContent = 'Setting up room...';
+    $('lobbyHint').textContent = '';
+    showScreen('lobbyScreen');
+    myPeer = new Peer(roomCode);
+    myPeer.on('open', id => {
+      console.log('[host] my peer id =', id);
+      myPeerId = id;
+      netRole = 'host';
+      localPlayerIdx = 0;
+      $('lobbyTitle').textContent = 'Hosting';
+      $('lobbyCodeLine').innerHTML = `Room code: <strong style="color:#ffd866; user-select:all; cursor:pointer;" onclick="navigator.clipboard && navigator.clipboard.writeText('${id}')">${id}</strong> <br><span style="opacity:0.7; font-size:0.75rem;">(click to copy)</span>`;
+      $('lobbyHint').textContent = `Max ${mpMaxPlayers} players. Game starts when you click Start.`;
+      $('lobbyStartBtn').classList.remove('hidden');
+      $('lobbyStartBtn').disabled = true;
+      updateLobbyUI();
+    });
+    myPeer.on('connection', conn => {
+      console.log('[host] incoming connection from', conn.peer);
+      conn.on('open', () => {
+        const slot = 1 + clientConns.length;
+        if (slot >= mpMaxPlayers) {
+          conn.send({ type: 'FULL' });
+          setTimeout(() => conn.close(), 200);
+          return;
+        }
+        conn.metadata = { slot, name: 'Joining...' };
+        clientConns.push(conn);
+        conn.on('data', data => hostHandleData(conn, data));
+        conn.on('error', err => console.error('[host] conn error:', err));
+        conn.on('close', () => {
+          console.log('[host] client disconnected, slot', conn.metadata.slot);
+          clientConns = clientConns.filter(c => c !== conn);
+          updateLobbyUI();
+          broadcastLobby();
+        });
+        conn.send({ type: 'JOINED', slot });
+        updateLobbyUI();
+      });
+    });
+    myPeer.on('error', err => {
+      console.error('[host] Peer error:', err);
+      let msg = err.type || 'unknown';
+      if (err.type === 'unavailable-id') msg = 'Room code is already taken. Try again.';
+      if (err.type === 'network') msg = 'No network connection to broker.';
+      $('lobbyCodeLine').textContent = 'Error: ' + msg;
+    });
+  }
+
+  function startJoining(hostCode, name) {
+    // Normalize: trim, lowercase, auto-prepend prefix if user only typed the suffix
+    hostCode = hostCode.trim().toLowerCase();
+    if (!hostCode.startsWith(ROOM_PREFIX)) hostCode = ROOM_PREFIX + hostCode;
+    $('joinStatus').textContent = `Initializing... (target: ${hostCode})`;
+    myPeer = new Peer();
+    myPeer.on('open', myId => {
+      console.log('[client] my peer id =', myId);
+      $('joinStatus').textContent = `Connecting to ${hostCode}...`;
+      hostConn = myPeer.connect(hostCode, { reliable: true });
+      let opened = false;
+      hostConn.on('open', () => {
+        opened = true;
+        netRole = 'client';
+        hostConn.send({ type: 'HELLO', name });
+        $('joinStatus').textContent = 'Connected. Waiting for host...';
+      });
+      hostConn.on('data', data => clientHandleData(data));
+      hostConn.on('error', err => {
+        console.error('[client] DataConnection error:', err);
+        $('joinStatus').textContent = 'Connection error: ' + (err.message || err.type || 'unknown');
+      });
+      hostConn.on('close', () => {
+        console.log('[client] hostConn closed');
+        if (!opened) {
+          $('joinStatus').textContent = 'Could not connect — check the room code and that the host is online.';
+          return;
+        }
+        if (!matchOver) alert('Disconnected from host.');
+        leaveRoom();
+      });
+      // Timeout safety net
+      setTimeout(() => {
+        if (hostConn && !opened) {
+          $('joinStatus').textContent = 'Connection timed out. Double-check the room code and try again.';
+          try { hostConn.close(); } catch (e) {}
+        }
+      }, 12000);
+    });
+    myPeer.on('error', err => {
+      console.error('[client] Peer error:', err);
+      let msg = err.type || 'unknown';
+      if (err.type === 'peer-unavailable') msg = 'Host not found. Check the room code.';
+      if (err.type === 'network') msg = 'No network connection to broker.';
+      $('joinStatus').textContent = 'Error: ' + msg;
+    });
+  }
+
+  function hostHandleData(conn, data) {
+    if (data.type === 'HELLO') {
+      conn.metadata.name = (data.name || '').trim() || `Player ${conn.metadata.slot + 1}`;
+      updateLobbyUI();
+      broadcastLobby();
+    } else if (data.type === 'ACTION') {
+      handleNetAction(conn.metadata.slot, data.action);
+    }
+  }
+
+  function clientHandleData(data) {
+    if (data.type === 'JOINED') {
+      localPlayerIdx = data.slot;
+      $('lobbyTitle').textContent = 'In Lobby';
+      $('lobbyCodeLine').textContent = 'Connected. Waiting for host to start...';
+      $('lobbyHint').textContent = `You are Player ${data.slot + 1}.`;
+      $('lobbyStartBtn').classList.add('hidden');
+      showScreen('lobbyScreen');
+    } else if (data.type === 'LOBBY') {
+      playerNames = data.players;
+      updateLobbyUI();
+    } else if (data.type === 'START') {
+      numPlayers = data.numPlayers;
+      playerNames = data.playerNames;
+      isBot = data.isBot;
+      applyState(data.state);
+      showScreen('gameScreen');
+      renderLanes();
+      updateAllUI();
+    } else if (data.type === 'STATE') {
+      const needRerender = !tracks.length || JSON.stringify(tracks) !== JSON.stringify(data.state.tracks);
+      applyState(data.state);
+      if (needRerender) renderLanes();
+      else { renderTokens(); reflipAll(); }
+      updateAllUI();
+    } else if (data.type === 'FULL') {
+      alert('Room is full.');
+      leaveRoom();
+    } else if (data.type === 'END') {
+      alert(data.message || 'Game ended.');
+      leaveRoom();
+    }
+  }
+
+  function reflipAll() {
+    for (let p = 0; p < numPlayers; p++) {
+      for (let i = 0; i < TRACK_LEN; i++) {
+        if (flipped[p][i] || tracks[p][i] === 'goal') {
+          showFace(p, i, false);
+        } else {
+          const el = $(`p${p}card${i}`);
+          if (el) { el.className = 'card back'; el.textContent = ''; }
+        }
+      }
+    }
+  }
+
+  function showTargetPickerOnClient(targetPrompt) {
+    if (currentPlayer !== localPlayerIdx) {
+      $('targetControls').classList.add('hidden');
+      $('mainControls').classList.remove('hidden');
+      return;
+    }
+    // Rebuild target buttons for this client (host already shows them locally)
+    const tc = $('targetControls');
+    tc.innerHTML = '<span style="color:#ffd866; margin-right:8px; font-weight:600;">Swap with:</span>';
+    targetPrompt.opponents.forEach(opp => {
+      const b = document.createElement('button');
+      b.className = 'reversal-btn';
+      b.textContent = `${playerNames[opp]} (pos ${positions[opp] < 0 ? 'Start' : positions[opp] + 1})`;
+      b.onclick = () => sendAction({ kind: 'PICK_TARGET', targetIdx: opp });
+      tc.appendChild(b);
+    });
+    $('mainControls').classList.add('hidden');
+    tc.classList.remove('hidden');
+  }
+
+  function updateLobbyUI() {
+    if (!$('lobbyPlayers')) return;
+    const list = [];
+    if (netRole === 'host') {
+      list.push({ slot: 0, name: ($('hostName').value.trim() || 'Host') + ' (host)' });
+      clientConns.forEach(c => list.push({ slot: c.metadata.slot, name: c.metadata.name }));
+    } else if (netRole === 'client') {
+      // Client only shows received list
+      for (let i = 0; i < playerNames.length; i++) list.push({ slot: i, name: playerNames[i] });
+    }
+    $('lobbyPlayers').innerHTML = list.map(p =>
+      `<div>👤 Slot ${p.slot + 1}: <strong>${escapeHtml(p.name)}</strong></div>`
+    ).join('');
+    if (netRole === 'host') {
+      const haveEnough = clientConns.length >= 1; // host + at least 1 client = 2
+      $('lobbyStartBtn').disabled = !haveEnough;
+      $('lobbyHint').textContent = haveEnough
+        ? `Ready! ${1 + clientConns.length} of ${mpMaxPlayers} players. You can start now or wait for more.`
+        : `Waiting for at least 1 player to join...`;
+    }
+  }
+
+  function broadcastLobby() {
+    if (netRole !== 'host') return;
+    const players = [($('hostName').value.trim() || 'Host')];
+    // Place clients into their slots
+    const slotMap = new Array(mpMaxPlayers).fill(null);
+    slotMap[0] = players[0];
+    clientConns.forEach(c => { slotMap[c.metadata.slot] = c.metadata.name; });
+    const filled = slotMap.filter(x => x !== null);
+    clientConns.forEach(c => {
+      try { c.send({ type: 'LOBBY', players: filled }); } catch (e) {}
+    });
+  }
+
+  function hostStartGame() {
+    numPlayers = 1 + clientConns.length;
+    playerNames = [($('hostName').value.trim() || 'Host')];
+    isBot = [false];
+    const sorted = [...clientConns].sort((a, b) => a.metadata.slot - b.metadata.slot);
+    sorted.forEach(c => { playerNames.push(c.metadata.name); isBot.push(false); });
+    showScreen('gameScreen');
+    resetMatch(); // broadcasts START to clients
+  }
+
+  function leaveRoom() {
+    try { if (hostConn) hostConn.close(); } catch (e) {}
+    try { clientConns.forEach(c => c.close()); } catch (e) {}
+    try { if (myPeer) myPeer.destroy(); } catch (e) {}
+    hostConn = null;
+    clientConns = [];
+    myPeer = null;
+    netRole = null;
+    showScreen('modeScreen');
+  }
+
+  function sendAction(action) {
+    if (netRole !== 'client' || !hostConn) return;
+    try { hostConn.send({ type: 'ACTION', action }); } catch (e) { console.warn(e); }
+  }
+
+  function handleNetAction(senderSlot, action) {
+    if (senderSlot !== currentPlayer) return;
+    switch (action.kind) {
+      case 'ROLL': if (!busy && !awaitingChoice && !awaitingTarget && !matchOver) doRoll(false); break;
+      case 'CHOOSE_USE_NOW': doChooseUseNow(); break;
+      case 'CHOOSE_KEEP': doChooseKeep(); break;
+      case 'PICK_TARGET': doPickReversalTarget(action.targetIdx); break;
+      case 'USE_INV_REVERSAL': doUseInventoryReversal(); break;
+      case 'USE_INV_BOOST': doUseInventoryBoost(); break;
+      case 'USE_INV_SUPER': doUseInventorySuperBoost(); break;
+    }
+  }
+
+  function serializeState() {
+    return {
+      positions: [...positions],
+      inventory: [...inventory],
+      blocks: [...blocks],
+      boosts: [...boosts],
+      superBoosts: [...superBoosts],
+      tracks: tracks.map(t => [...t]),
+      flipped: flipped.map(f => [...f]),
+      currentPlayer,
+      matchOver,
+      awaitingChoice,
+      awaitingTarget,
+      pendingReversalSource,
+      statusText: $('status').textContent,
+      statusHtml: $('status').innerHTML,
+      dieFace: lastDieFace,
+      winnerIdx,
+    };
+  }
+
+  function applyState(state) {
+    const tracksChanged = !tracks.length || JSON.stringify(state.tracks) !== JSON.stringify(tracks);
+    positions = state.positions;
+    inventory = state.inventory;
+    blocks = state.blocks;
+    boosts = state.boosts;
+    superBoosts = state.superBoosts;
+    tracks = state.tracks;
+    flipped = state.flipped;
+    currentPlayer = state.currentPlayer;
+    matchOver = state.matchOver;
+    awaitingChoice = state.awaitingChoice;
+    awaitingTarget = state.awaitingTarget;
+    pendingReversalSource = state.pendingReversalSource;
+    busy = false;
+    if (state.statusHtml && state.statusHtml.includes('match-end')) $('status').innerHTML = state.statusHtml;
+    else if (state.statusText) $('status').textContent = state.statusText;
+    if (state.dieFace) { lastDieFace = state.dieFace; renderDie(state.dieFace); }
+    winnerIdx = state.winnerIdx !== undefined ? state.winnerIdx : null;
+    if (matchOver) { showEndControls(); maybeShowReward(); }
+    else hideEndControls();
+    if (netRole === 'client') {
+      if (awaitingChoice && currentPlayer === localPlayerIdx) {
+        $('useNowBtn').textContent = awaitingChoice === 'boost' ? '⬆️ Use Now (+2 / all enemies −2)' : '🔄 Use Now (Swap)';
+        showChoiceUI(true);
+      } else if (awaitingTarget === 'reversal' && currentPlayer === localPlayerIdx) {
+        const opponents = [];
+        for (let i = 0; i < numPlayers; i++) if (i !== currentPlayer) opponents.push(i);
+        const tc = $('targetControls');
+        tc.innerHTML = '<span style="color:#ffd866; margin-right:8px; font-weight:600;">Swap with:</span>';
+        opponents.forEach(opp => {
+          const b = document.createElement('button');
+          b.className = 'reversal-btn';
+          b.textContent = `${playerNames[opp]} (pos ${positions[opp] < 0 ? 'Start' : positions[opp] + 1})`;
+          b.onclick = () => sendAction({ kind: 'PICK_TARGET', targetIdx: opp });
+          tc.appendChild(b);
+        });
+        $('mainControls').classList.add('hidden');
+        tc.classList.remove('hidden');
+      } else {
+        showChoiceUI(false);
+        $('targetControls').classList.add('hidden');
+        if (!matchOver) $('mainControls').classList.remove('hidden');
+      }
+    }
+  }
+
+  function broadcastState() {
+    if (netRole !== 'host' || clientConns.length === 0) return;
+    const state = serializeState();
+    clientConns.forEach(c => {
+      try { c.send({ type: 'STATE', state }); } catch (e) {}
+    });
+  }
+
+  // Schedule a broadcast after the current sync of UI updates
+  let broadcastScheduled = false;
+  function scheduleBroadcast() {
+    if (netRole !== 'host') return;
+    if (broadcastScheduled) return;
+    broadcastScheduled = true;
+    setTimeout(() => { broadcastScheduled = false; broadcastState(); }, 30);
+  }
+
+  // ---------- Wire up ----------
+
+  $('modeOfflineBtn').addEventListener('click', () => pickMode(true));
+  $('modeMultiBtn').addEventListener('click', () => pickMode(false));
+  $('mpBackBtn').addEventListener('click', () => showScreen('modeScreen'));
+  $('hostBtn').addEventListener('click', () => { showScreen('hostSetupScreen'); $('hostName').focus(); });
+  $('joinBtn').addEventListener('click', () => { showScreen('joinScreen'); $('joinCode').focus(); });
+  $('hostBackBtn').addEventListener('click', () => showScreen('mpScreen'));
+  $('joinBackBtn').addEventListener('click', () => showScreen('mpScreen'));
+  $('lobbyLeaveBtn').addEventListener('click', leaveRoom);
+  document.querySelectorAll('#hostSetupScreen [data-host-count]').forEach(b => {
+    b.addEventListener('click', () => {
+      mpMaxPlayers = parseInt(b.dataset.hostCount, 10);
+      $('hostMaxLabel').textContent = `Max players: ${mpMaxPlayers}`;
+      document.querySelectorAll('#hostSetupScreen [data-host-count]').forEach(x => x.style.opacity = '0.5');
+      b.style.opacity = '1';
+      $('hostCreateBtn').disabled = false;
+    });
+  });
+  $('hostCreateBtn').addEventListener('click', () => {
+    const code = genRoomCode();
+    startHosting(code);
+  });
+  $('joinConnectBtn').addEventListener('click', () => {
+    const code = $('joinCode').value.trim();
+    const name = $('joinName').value.trim() || 'Player';
+    if (!code) { $('joinStatus').textContent = 'Enter a room code.'; return; }
+    startJoining(code, name);
+  });
+  $('lobbyStartBtn').addEventListener('click', hostStartGame);
+  $('backToMode').addEventListener('click', () => showScreen('modeScreen'));
+  $('backFromName').addEventListener('click', () => showScreen(isOffline ? 'modeScreen' : 'countScreen'));
+  document.querySelectorAll('#countScreen [data-count]').forEach(b => {
+    b.addEventListener('click', () => pickCount(parseInt(b.dataset.count, 10)));
+  });
+  $('startBtn').addEventListener('click', startGame);
+  $('rollBtn').addEventListener('click', rollDie);
+  $('resetBtn').addEventListener('click', resetMatch);
+  $('useNowBtn').addEventListener('click', chooseUseNow);
+  $('keepBtn').addEventListener('click', chooseKeep);
+  $('useInvBtn').addEventListener('click', useInventoryReversal);
+  $('useBoostBtn').addEventListener('click', useInventoryBoost);
+  $('useSuperBtn').addEventListener('click', useInventorySuperBoost);
+  $('playAgainBtn').addEventListener('click', resetMatch);
+  $('menuBtn').addEventListener('click', goToMainMenu);
+</script>
+
+<script defer src="nullp-widget.js" data-game="Track Run"></script>
+</body>
+</html>
