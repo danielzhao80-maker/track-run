@@ -1176,9 +1176,8 @@
     return RIVALS_CODES[Math.floor(Math.random() * RIVALS_CODES.length)];
   }
 
-  // 🎃 Halloween (Monster Attack!'s event, same keys/dates/force switch): your FIRST win gives 10 candy, 11 with
-  // Nullp's treat boost (tell Nullp about "treats"). Track Run doesn't load the arcade shop, so this is
-  // the small standalone version of ArcadeShop.halloween.winCandy.
+  // 🎃 Halloween (Monster Attack!'s event, same keys/dates/force switch): your FIRST win gives 10 candy.
+  // Track Run doesn't load the arcade shop, so this is the small standalone version of ArcadeShop.halloween.winCandy.
   function halloweenWinCandy() {
     try {
       const f = localStorage.getItem('monster_attack_event_force'), d = new Date();
@@ -1188,7 +1187,7 @@
       const once = 'monster_attack_hw_once_trackrun_' + y;   // a one-time reward: the first win only
       if (localStorage.getItem(once) === '1') return 0;
       localStorage.setItem(once, '1');
-      const n = localStorage.getItem('monster_attack_hw_treat_' + y) === '1' ? 11 : 10;
+      const n = 10;
       localStorage.setItem('monster_attack_candy', String(num('monster_attack_candy') + n));
       localStorage.setItem('monster_attack_hw_earned_' + y, String(num('monster_attack_hw_earned_' + y) + n));
       return n;
@@ -1201,7 +1200,7 @@
     if (winnerIdx !== localPlayerIdx) return;
     rewardShown = true;
     const candyWon = halloweenWinCandy();
-    if (candyWon) $('status').innerHTML += `<div class="match-end" style="font-size:.9em">🎃 +${candyWon} candy for Monster Attack!'s Halloween Pass (one time only)${candyWon > 10 ? ' · 🍬 Nullp treat +10%' : ''}</div>`;
+    if (candyWon) $('status').innerHTML += `<div class="match-end" style="font-size:.9em">🎃 +${candyWon} candy for Monster Attack!'s Halloween Pass (one time only)</div>`;
     const loadout = generateRivalsLoadout();
     const boxId = 'prizeBox_' + Math.random().toString(36).substr(2, 6);
     window.__loadouts = window.__loadouts || {};
