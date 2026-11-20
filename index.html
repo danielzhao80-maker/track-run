@@ -1058,9 +1058,27 @@
     $('status').textContent = msg;
   }
 
+  // 🏅 Arcade titles (this game doesn't load the arcade shop, so the title goes straight into the arcade's save)
+  function arcadeEarnTitle(id, msg) {
+    try {
+      const KEY = 'daniels-arcade-v1', s = JSON.parse(localStorage.getItem(KEY) || '{}') || {};
+      s.owned = Array.isArray(s.owned) ? s.owned : []; if (s.owned.includes(id)) return false;
+      s.owned.push(id); s.equipped = Object.assign({}, s.equipped, { title: id });
+      localStorage.setItem(KEY, JSON.stringify(s));
+    } catch (e) { return false; }
+    const t = document.createElement('div');
+    t.textContent = msg; t.style.cssText = 'position:fixed;left:50%;top:18px;transform:translateX(-50%);background:#2d3436;color:#fff;padding:10px 18px;border-radius:14px;font-weight:800;z-index:99999;box-shadow:0 6px 20px rgba(0,0,0,.4)';
+    document.body.appendChild(t); setTimeout(() => t.remove(), 4000);
+    return true;
+  }
+  let titleSixes = 0;   // 🤫 🎲 Lucky Sixes: three 6s in a row
   function declareWinner(pIdx, verb) {
     matchOver = true;
     winnerIdx = pIdx;
+    if (pIdx === localPlayerIdx && !isBot[pIdx]) {   // 🏁 Track Champion: win 10 races
+      let n = 0; try { n = (+localStorage.getItem('arcade_title_tr_wins') || 0) + 1; localStorage.setItem('arcade_title_tr_wins', String(n)); } catch (e) {}
+      if (n >= 10) arcadeEarnTitle('tr-champ', '🏁 TRACK CHAMPION! 10 races won — title unlocked!');
+    }
     $('status').innerHTML = `<div class="match-end">🏆 ${playerNames[pIdx]} ${verb} the finish and wins!</div>`;
     showEndControls();
     updateAllUI();
@@ -1369,6 +1387,7 @@
     updateInventoryButtons();
     const face = Math.floor(Math.random() * 6) + 1;
     lastDieFace = face;
+    if (currentPlayer === localPlayerIdx && !isBot[currentPlayer]) { titleSixes = face === 6 ? titleSixes + 1 : 0; if (titleSixes === 3) arcadeEarnTitle('tr-sixes', '🎲 LUCKY SIXES! Three 6s in a row — a secret title!'); }
     renderDie(face);
     $('status').textContent = `${playerNames[currentPlayer]} rolled ${face}. Moving...`;
     if (netRole === 'host') scheduleBroadcast();
